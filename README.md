@@ -29,7 +29,7 @@ Mongoose maven dependency:
 
 - Wiring business logic (an ObjectEventHandlerNode) into a Mongoose processor
 - Using InMemoryEventSource to publish events programmatically
-- Configuring agent execution and idle strategy via Mongoose builder APIs (EventProcessorGroupConfig, EventProcessorConfig, EventFeedConfig, MongooseServerConfig)
+- Configuring agent execution and idle strategy via Mongoose builder APIs (EventProcessorConfig, EventFeedConfig, MongooseServerConfig)
 
 ## Prerequisites
 
@@ -69,11 +69,8 @@ public final class HelloMongoose {
         var feed = new InMemoryEventSource<String>();
 
         // 3) Build and boot server with an in-memory feed and handler using builder APIs
-        var processorGroup = EventProcessorGroupConfig.builder()
-                .agentName("processor-agent")
-                .put("hello-handler", EventProcessorConfig.builder()
-                        .customHandler(handler)
-                        .build())
+        var eventProcessorConfig = EventProcessorConfig.builder()
+                .customHandler(handler)
                 .build();
 
         var feedConfig = EventFeedConfig.<String>builder()
@@ -84,7 +81,7 @@ public final class HelloMongoose {
                 .build();
 
         var app = MongooseServerConfig.builder()
-                .addProcessorGroup(processorGroup)
+                .addProcessor("processor-agent", "hello-handler", eventProcessorConfig)
                 .addEventFeed(feedConfig)
                 .build();
 
@@ -103,9 +100,9 @@ public final class HelloMongoose {
 
 How it boots and runs:
 
-- EventProcessorGroupConfig.builder().agentName("processor-agent").put("hello-handler", ...) declares the processor group and adds your handler as a processor.
+- EventProcessorConfig.builder().customHandler(handler).build() creates the processor configuration.
+- MongooseServerConfig.builder().addProcessor("processor-agent", "hello-handler", eventProcessorConfig) registers the handler under the given agent name (the processor agent thread).
 - EventFeedConfig.builder().instance(feed).name("hello-feed").broadcast(true).agent("feed-agent", new BusySpinIdleStrategy()) declares the in-memory feed and its agent/idle strategy.
-- MongooseServerConfig.builder().addProcessorGroup(processorGroup).addEventFeed(feedConfig).build() assembles the app configuration.
 - bootServer(app, rec -> { ... }) reads the app config, spins up the feed-agent and processor-agent threads, wires the feed to the processor (broadcast in this example), and returns a server handle. Offering to feed will then drive the handler on the processor-agent thread.
 
 ## Build

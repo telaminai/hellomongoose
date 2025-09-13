@@ -5,11 +5,11 @@ import com.fluxtion.runtime.node.ObjectEventHandlerNode;
 import com.telamin.mongoose.config.EventFeedConfig;
 import com.telamin.mongoose.config.EventProcessorConfig;
 import com.telamin.mongoose.config.MongooseServerConfig;
+import com.telamin.mongoose.config.ThreadConfig;
 import com.telamin.mongoose.connector.memory.InMemoryEventSource;
 
 
 import static com.telamin.mongoose.MongooseServer.bootServer;
-import static com.telamin.mongoose.config.EventProcessorGroupConfig.*;
 
 public final class HelloMongoose {
 
@@ -29,11 +29,8 @@ public final class HelloMongoose {
         var feed = new InMemoryEventSource<String>();
 
         // 3) Build and boot server with an in-memory feed and handler using builder APIs
-        var processorGroup = builder()
-                .agentName("processor-agent")
-                .put("hello-handler", EventProcessorConfig.builder()
-                        .customHandler(handler)
-                        .build())
+        var eventProcessorConfig = EventProcessorConfig.builder()
+                .customHandler(handler)
                 .build();
 
         var feedConfig = EventFeedConfig.<String>builder()
@@ -43,9 +40,15 @@ public final class HelloMongoose {
                 .agent("feed-agent", new BusySpinIdleStrategy())
                 .build();
 
+        var threadConfig = ThreadConfig.builder()
+                .agentName("processor-agent")
+                .idleStrategy(new BusySpinIdleStrategy())
+                .build();
+
         var app = MongooseServerConfig.builder()
-                .addProcessorGroup(processorGroup)
+                .addProcessor("processor-agent", "hello-handler", eventProcessorConfig)
                 .addEventFeed(feedConfig)
+                .addThread(threadConfig)
                 .build();
 
         var server = bootServer(app, rec -> { /* optional log listener */ });
