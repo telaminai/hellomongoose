@@ -1,5 +1,7 @@
 # Hello Mongoose Example
 
+**Mongoose project homepage:** https://telaminai.github.io/mongoose/
+
 [![CI](https://github.com/telaminai/mongoose-examples/actions/workflows/ci.yml/badge.svg)](https://github.com/telaminai/mongoose-examples/actions/workflows/ci.yml)
 
 This is a Maven project with a single runtime dependency on `com.telamin:mongoose`. It provides a minimal "Hello,
