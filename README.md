@@ -138,30 +138,6 @@ From this project directory:
 
 - Build: `./mvnw -q package`
 
-## Testing
-
-This project uses JUnit 5 and the Maven Surefire Plugin.
-
-- Run all tests:
-    - `./mvnw -q test`
-- Run a specific test class:
-    - `./mvnw -q -Dtest=HelloMongooseTest test`
-
-What the test validates:
-
-- HelloMongooseTest boots the actual application by calling HelloMongoose.main.
-- main publishes two String events ("hi" and "mongoose"). The handler increments a public static AtomicInteger COUNT for
-  each String handled.
-- The test performs a short, bounded polling wait (up to ~1s) to allow the background processor thread to process the
-  events, then asserts COUNT == 2.
-- Using AtomicInteger ensures thread-safe increments across threads.
-
-Notes:
-
-- The sample app processes events on a background processor thread; hence the short polling wait in the test keeps it
-  simple and avoids adding latches to production code.
-- Test source [HelloMongooseTest](src/test/java/com/telamin/mongoose/example/hellomongoose/HelloMongooseTest.java)
-
 ## Run
 
 There are two common ways to run the example, both of which set the JUL log level to WARNING:
@@ -184,6 +160,51 @@ thread:'main' publishing events
 thread:'processor-agent' Got event: hi
 thread:'processor-agent' Got event: mongoose
 ```
+
+## Testing
+
+This project uses JUnit 5 and the Maven Surefire Plugin. 
+
+- Test source [HelloMongooseTest](src/test/java/com/telamin/mongoose/example/hellomongoose/HelloMongooseTest.java)
+- Run all tests: `./mvnw -q test`
+
+```java
+@Test
+void main_increments_static_count_for_two_events() {
+    // reset any prior state
+    HelloMongoose.resetCount();
+
+    // Run main (publishes two events and stops the server)
+    HelloMongoose.main(new String[0]);
+
+    // Wait briefly for the processor thread to handle events (robust across environments)
+    long deadline = System.currentTimeMillis() + 1_000; // up to 1s
+    while (HelloMongoose.getCount() < 2 && System.currentTimeMillis() < deadline) {
+        try {
+            Thread.sleep(10);
+        } catch (InterruptedException ignored) {
+            // ignore and continue waiting until deadline or condition met
+        }
+    }
+
+    // In this example, two String events are offered: "hi" and "mongoose"
+    assertEquals(2, HelloMongoose.getCount(), "Expected two processed events within timeout");
+}
+```
+
+What the test validates:
+
+- HelloMongooseTest boots the actual application by calling HelloMongoose.main.
+- main publishes two String events ("hi" and "mongoose"). The handler increments a public static AtomicInteger COUNT for
+  each String handled.
+- The test performs a short, bounded polling wait (up to ~1s) to allow the background processor thread to process the
+  events, then asserts COUNT == 2.
+- Using AtomicInteger ensures thread-safe increments across threads.
+
+Notes:
+
+- The sample app processes events on a background processor thread; hence the short polling wait in the test keeps it
+  simple and avoids adding latches to production code.
 
 ## Notes
 
