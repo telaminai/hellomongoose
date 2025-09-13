@@ -4,10 +4,9 @@
 
 [![CI](https://github.com/telaminai/mongoose-examples/actions/workflows/ci.yml/badge.svg)](https://github.com/telaminai/mongoose-examples/actions/workflows/ci.yml)
 
-This is a Maven project with a single runtime dependency on `com.telamin:mongoose`. It provides a minimal "Hello,
-Mongoose" application showing how to:
+This is a Maven project that provides a minimal "Hello, Mongoose" application showing how to:
 
-- Define a simple event handler using Fluxtion’s ObjectEventHandlerNode
+- Define a simple event handler by extending ObjectEventHandlerNode
 - Set up an in-memory event source
 - Boot a Mongoose Server with one processor and one input feed
 - Publish a couple of events and stop the server
