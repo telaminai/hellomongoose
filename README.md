@@ -29,7 +29,8 @@ Mongoose maven dependency:
 
 - Wiring business logic (an ObjectEventHandlerNode) into a Mongoose processor
 - Using InMemoryEventSource to publish events programmatically
-- Configuring agent execution and idle strategy via Mongoose builder APIs (EventProcessorConfig, EventFeedConfig, ThreadConfig, MongooseServerConfig)
+- Configuring agent execution and idle strategy via Mongoose builder APIs (EventProcessorConfig, EventFeedConfig,
+  ThreadConfig, MongooseServerConfig)
 
 ## Prerequisites
 
@@ -46,13 +47,15 @@ The sample below shows four pieces of configuration and how the server uses them
 - Handler (business logic): an ObjectEventHandlerNode that receives events on the processor thread and prints them.
 - Feed (input source): an InMemoryEventSource<String> that we programmatically offer events to; with broadcast=true it
   delivers published events to all processors without explicit subscriptions.
-- ThreadConfig (processor agent): defines the processor agent (thread) characteristics such as the agent name and the handler idleStrategy.
+- ThreadConfig (processor agent): defines the processor agent (thread) characteristics such as the agent name and the
+  handler idleStrategy.
 - App (server config): a MongooseServerConfig that wires the handler into a named processor agent and registers the feed
   as a named event-source worker with its own agent and idle strategy. The bootServer(app, ...) call reads this config,
   starts the agents, connects the feed to the processor, and returns a running server instance.
 
 ```java
 public final class HelloMongoose {
+    public static final AtomicInteger COUNT = new AtomicInteger(0);
 
     public static void main(String[] args) {
         // 1) Business logic handler
@@ -60,6 +63,7 @@ public final class HelloMongoose {
             @Override
             protected boolean handleEvent(Object event) {
                 if (event instanceof String s) {
+                    COUNT.incrementAndGet();
                     System.out.println("thread:'" + Thread.currentThread().getName() + "' Got event: " + s);
                 }
                 return true;
@@ -108,17 +112,47 @@ public final class HelloMongoose {
 How it boots and runs:
 
 - EventProcessorConfig.builder().customHandler(handler).build() creates the processor configuration.
-- ThreadConfig.builder().agentName("processor-agent").idleStrategy(new BusySpinIdleStrategy()).build() sets up the processor agent thread and the handler idleStrategy.
-- MongooseServerConfig.builder().addProcessor("processor-agent", "hello-handler", eventProcessorConfig) registers the handler under the given agent name (the processor agent thread).
-- EventFeedConfig.builder().instance(feed).name("hello-feed").broadcast(true).agent("feed-agent", new BusySpinIdleStrategy()) declares the in-memory feed and its agent/idle strategy.
-- MongooseServerConfig.builder()....addThread(threadConfig) registers the processor agent thread configuration with the app.
-- bootServer(app, rec -> { ... }) reads the app config, spins up the feed-agent and processor-agent threads, wires the feed to the processor (broadcast in this example), and returns a server handle. Offering to feed will then drive the handler on the processor-agent thread.
+- ThreadConfig.builder().agentName("processor-agent").idleStrategy(new BusySpinIdleStrategy()).build() sets up the
+  processor agent thread and the handler idleStrategy.
+- MongooseServerConfig.builder().addProcessor("processor-agent", "hello-handler", eventProcessorConfig) registers the
+  handler under the given agent name (the processor agent thread).
+- EventFeedConfig.builder().instance(feed).name("hello-feed").broadcast(true).agent("feed-agent", new
+  BusySpinIdleStrategy()) declares the in-memory feed and its agent/idle strategy.
+- MongooseServerConfig.builder()....addThread(threadConfig) registers the processor agent thread configuration with the
+  app.
+- bootServer(app, rec -> { ... }) reads the app config, spins up the feed-agent and processor-agent threads, wires the
+  feed to the processor (broadcast in this example), and returns a server handle. Offering to feed will then drive the
+  handler on the processor-agent thread.
 
 ## Build
 
 From this project directory:
 
 - Build: `./mvnw -q package`
+
+## Testing
+
+This project uses JUnit 5 and the Maven Surefire Plugin.
+
+- Run all tests:
+    - `./mvnw -q test`
+- Run a specific test class:
+    - `./mvnw -q -Dtest=HelloMongooseTest test`
+
+What the test validates:
+
+- HelloMongooseTest boots the actual application by calling HelloMongoose.main.
+- main publishes two String events ("hi" and "mongoose"). The handler increments a public static AtomicInteger COUNT for
+  each String handled.
+- The test performs a short, bounded polling wait (up to ~1s) to allow the background processor thread to process the
+  events, then asserts COUNT == 2.
+- Using AtomicInteger ensures thread-safe increments across threads.
+
+Notes:
+
+- The sample app processes events on a background processor thread; hence the short polling wait in the test keeps it
+  simple and avoids adding latches to production code.
+- Test source [HelloMongooseTest](src/test/java/com/telamin/mongoose/example/hellomongoose/HelloMongooseTest.java)
 
 ## Run
 
@@ -158,7 +192,7 @@ thread:'processor-agent' Got event: mongoose
 
 - Mongoose GitHub repository: https://github.com/telaminai/mongoose
 - Mongoose project homepage:https://telaminai.github.io/mongoose/
-- Example source in this project: `src/main/java/com/telamin/mongoose/example/hellomongoose/HelloMongoose.java`
+- Example source in this project: [HelloMongoose](src/main/java/com/telamin/mongoose/example/hellomongoose/HelloMongoose.java)
 
 ## Configuring java.util.logging (JUL)
 

@@ -8,10 +8,21 @@ import com.telamin.mongoose.config.MongooseServerConfig;
 import com.telamin.mongoose.config.ThreadConfig;
 import com.telamin.mongoose.connector.memory.InMemoryEventSource;
 
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.telamin.mongoose.MongooseServer.bootServer;
 
 public final class HelloMongoose {
+
+    public static final AtomicInteger COUNT = new AtomicInteger(0);
+
+    public static void resetCount() {
+        COUNT.set(0);
+    }
+
+    public static int getCount() {
+        return COUNT.get();
+    }
 
     public static void main(String[] args) {
         // 1) Business logic handler
@@ -19,6 +30,7 @@ public final class HelloMongoose {
             @Override
             protected boolean handleEvent(Object event) {
                 if (event instanceof String s) {
+                    COUNT.incrementAndGet();
                     System.out.println("thread:'" + Thread.currentThread().getName() + "' Got event: " + s);
                 }
                 return true;
