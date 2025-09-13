@@ -2,11 +2,14 @@ package com.telamin.mongoose.example.hellomongoose;
 
 import com.fluxtion.agrona.concurrent.BusySpinIdleStrategy;
 import com.fluxtion.runtime.node.ObjectEventHandlerNode;
+import com.telamin.mongoose.config.EventFeedConfig;
+import com.telamin.mongoose.config.EventProcessorConfig;
 import com.telamin.mongoose.config.MongooseServerConfig;
 import com.telamin.mongoose.connector.memory.InMemoryEventSource;
 
 
 import static com.telamin.mongoose.MongooseServer.bootServer;
+import static com.telamin.mongoose.config.EventProcessorGroupConfig.*;
 
 public final class HelloMongoose {
 
@@ -25,16 +28,25 @@ public final class HelloMongoose {
         // 2) Build in-memory feed
         var feed = new InMemoryEventSource<String>();
 
-        // 3) Build and boot server with an in-memory feed and handler
-        var app = new MongooseServerConfig()
-                .addProcessor("processor-agent", handler, "hello-handler")
-                .addEventSourceWorker(
-                        feed,
-                        "hello-feed",      // name
-                        true,               // broadcast events - no subscription required
-                        "feed-agent",      // agent name
-                        new BusySpinIdleStrategy() // agent idle strategy
-                );
+        // 3) Build and boot server with an in-memory feed and handler using builder APIs
+        var processorGroup = builder()
+                .agentName("processor-agent")
+                .put("hello-handler", EventProcessorConfig.builder()
+                        .customHandler(handler)
+                        .build())
+                .build();
+
+        var feedConfig = EventFeedConfig.<String>builder()
+                .instance(feed)
+                .name("hello-feed")
+                .broadcast(true)
+                .agent("feed-agent", new BusySpinIdleStrategy())
+                .build();
+
+        var app = MongooseServerConfig.builder()
+                .addProcessorGroup(processorGroup)
+                .addEventFeed(feedConfig)
+                .build();
 
         var server = bootServer(app, rec -> { /* optional log listener */ });
 

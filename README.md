@@ -13,7 +13,9 @@ The example’s main class:
 - [HelloMongoose](src/main/java/com/telamin/mongoose/example/hellomongoose/HelloMongoose.java)
 
 Mongoose maven dependency:
+
 ```xml
+
 <dependencies>
     <dependency>
         <groupId>com.telamin</groupId>
@@ -27,7 +29,7 @@ Mongoose maven dependency:
 
 - Wiring business logic (an ObjectEventHandlerNode) into a Mongoose processor
 - Using InMemoryEventSource to publish events programmatically
-- Configuring agent execution and idle strategy via MongooseServerConfig
+- Configuring agent execution and idle strategy via Mongoose builder APIs (EventProcessorGroupConfig, EventProcessorConfig, EventFeedConfig, MongooseServerConfig)
 
 ## Prerequisites
 
@@ -40,9 +42,13 @@ Mongoose maven dependency:
 ## Sample code
 
 The sample below shows three pieces of configuration and how the server uses them:
+
 - Handler (business logic): an ObjectEventHandlerNode that receives events on the processor thread and prints them.
-- Feed (input source): an InMemoryEventSource<String> that we programmatically offer events to; with broadcast=true it delivers published events to all processors without explicit subscriptions.
-- App (server config): a MongooseServerConfig that wires the handler into a named processor agent and registers the feed as a named event-source worker with its own agent and idle strategy. The bootServer(app, ...) call reads this config, starts the agents, connects the feed to the processor, and returns a running server instance.
+- Feed (input source): an InMemoryEventSource<String> that we programmatically offer events to; with broadcast=true it
+  delivers published events to all processors without explicit subscriptions.
+- App (server config): a MongooseServerConfig that wires the handler into a named processor agent and registers the feed
+  as a named event-source worker with its own agent and idle strategy. The bootServer(app, ...) call reads this config,
+  starts the agents, connects the feed to the processor, and returns a running server instance.
 
 ```java
 public final class HelloMongoose {
@@ -62,16 +68,25 @@ public final class HelloMongoose {
         // 2) Build in-memory feed
         var feed = new InMemoryEventSource<String>();
 
-        // 3) Build and boot server with an in-memory feed and handler
-        var app = new MongooseServerConfig()
-                .addProcessor("processor-agent", handler, "hello-handler")
-                .addEventSourceWorker(
-                        feed,
-                        "hello-feed",      // name
-                        true,               // broadcast events - no subscription required
-                        "feed-agent",      // agent name
-                        new BusySpinIdleStrategy() // agent idle strategy
-                );
+        // 3) Build and boot server with an in-memory feed and handler using builder APIs
+        var processorGroup = EventProcessorGroupConfig.builder()
+                .agentName("processor-agent")
+                .put("hello-handler", EventProcessorConfig.builder()
+                        .customHandler(handler)
+                        .build())
+                .build();
+
+        var feedConfig = EventFeedConfig.<String>builder()
+                .instance(feed)
+                .name("hello-feed")
+                .broadcast(true)
+                .agent("feed-agent", new BusySpinIdleStrategy())
+                .build();
+
+        var app = MongooseServerConfig.builder()
+                .addProcessorGroup(processorGroup)
+                .addEventFeed(feedConfig)
+                .build();
 
         var server = bootServer(app, rec -> { /* optional log listener */ });
 
@@ -87,18 +102,17 @@ public final class HelloMongoose {
 ```
 
 How it boots and runs:
-- addProcessor("processor-agent", handler, "hello-handler") registers the handler as the processor graph and names the agent that executes it.
-- addEventSourceWorker(feed, "hello-feed", true, "feed-agent", new BusySpinIdleStrategy()) registers an input feed, names it and its agent, and sets the idle strategy.
+
+- EventProcessorGroupConfig.builder().agentName("processor-agent").put("hello-handler", ...) declares the processor group and adds your handler as a processor.
+- EventFeedConfig.builder().instance(feed).name("hello-feed").broadcast(true).agent("feed-agent", new BusySpinIdleStrategy()) declares the in-memory feed and its agent/idle strategy.
+- MongooseServerConfig.builder().addProcessorGroup(processorGroup).addEventFeed(feedConfig).build() assembles the app configuration.
 - bootServer(app, rec -> { ... }) reads the app config, spins up the feed-agent and processor-agent threads, wires the feed to the processor (broadcast in this example), and returns a server handle. Offering to feed will then drive the handler on the processor-agent thread.
 
 ## Build
 
 From this project directory:
 
-- Build: `mvn -q package`
-
-This will compile the project and (optionally) produce a shaded runnable JAR if you keep the included Maven Shade Plugin
-configuration.
+- Build: `./mvnw -q package`
 
 ## Run
 
@@ -106,17 +120,13 @@ There are two common ways to run the example, both of which set the JUL log leve
 
 1) Via your IDE:
 
-- Set the main class to `com.telamin.mongoose.example.hellomongoose.HelloMongoose` and run with the JVM option to load
-  JUL config file:
-    - `-Djava.util.logging.config.file=src/main/resources/logging.properties`
-    - When running from a packaged jar, use the absolute path to the properties file on your machine.
+- Set the main class to `com.telamin.mongoose.example.hellomongoose.HelloMongoose`
+- Run with the JVM vm option `-Djava.util.logging.config.file=src/main/resources/logging.properties`
 
 2) Via the shaded JAR:
 
-- Build: `mvn -q package`
-- Run (with JUL config file):
-    - `java -Djava.util.logging.config.file=./logging.properties -jar target/hellomongoose-1.0.0-SNAPSHOT-shaded.jar`
-    - Make sure `logging.properties` is present next to the jar or provide an absolute path.
+- Build: `./mvnw -q package`
+- Run: `java -Djava.util.logging.config.file=./logging.properties -jar target/hellomongoose-1.0.0-SNAPSHOT-shaded.jar`
 
 Expected output:
 
