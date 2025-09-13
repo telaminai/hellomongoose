@@ -5,6 +5,7 @@ import com.fluxtion.runtime.node.ObjectEventHandlerNode;
 import com.telamin.mongoose.config.MongooseServerConfig;
 import com.telamin.mongoose.connector.memory.InMemoryEventSource;
 
+
 import static com.telamin.mongoose.MongooseServer.bootServer;
 
 public final class HelloMongoose {
@@ -15,7 +16,7 @@ public final class HelloMongoose {
             @Override
             protected boolean handleEvent(Object event) {
                 if (event instanceof String s) {
-                    System.out.println("Got event: " + s);
+                    System.out.println("thread:'" + Thread.currentThread().getName() + "' Got event: " + s);
                 }
                 return true;
             }
@@ -38,6 +39,7 @@ public final class HelloMongoose {
         var server = bootServer(app, rec -> { /* optional log listener */ });
 
         // 4) Publish a few events
+        System.out.println("thread:'" + Thread.currentThread().getName() + "' publishing events\n");
         feed.offer("hi");
         feed.offer("mongoose");
 
