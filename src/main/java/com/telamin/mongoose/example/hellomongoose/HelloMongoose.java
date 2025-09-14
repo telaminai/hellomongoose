@@ -2,6 +2,7 @@ package com.telamin.mongoose.example.hellomongoose;
 
 import com.fluxtion.agrona.concurrent.BusySpinIdleStrategy;
 import com.fluxtion.runtime.node.ObjectEventHandlerNode;
+import com.telamin.mongoose.MongooseServer;
 import com.telamin.mongoose.config.EventFeedConfig;
 import com.telamin.mongoose.config.EventProcessorConfig;
 import com.telamin.mongoose.config.MongooseServerConfig;
@@ -9,8 +10,6 @@ import com.telamin.mongoose.config.ThreadConfig;
 import com.telamin.mongoose.connector.memory.InMemoryEventSource;
 
 import java.util.concurrent.atomic.AtomicInteger;
-
-import static com.telamin.mongoose.MongooseServer.bootServer;
 
 public final class HelloMongoose {
 
@@ -40,9 +39,10 @@ public final class HelloMongoose {
         // 2) Build in-memory feed
         var feed = new InMemoryEventSource<String>();
 
-        // 3) Build and boot server with an in-memory feed and handler using builder APIs
+        // 3) Build and boot mongoose server with an in-memory feed and handler using builder APIs
         var eventProcessorConfig = EventProcessorConfig.builder()
                 .customHandler(handler)
+                .name("hello-handler")
                 .build();
 
         var feedConfig = EventFeedConfig.<String>builder()
@@ -58,12 +58,12 @@ public final class HelloMongoose {
                 .build();
 
         var app = MongooseServerConfig.builder()
-                .addProcessor("processor-agent", "hello-handler", eventProcessorConfig)
+                .addProcessor("processor-agent", eventProcessorConfig)
                 .addEventFeed(feedConfig)
                 .addThread(threadConfig)
                 .build();
 
-        var server = bootServer(app, rec -> { /* optional log listener */ });
+        var server = MongooseServer.bootServer(app);
 
         // 4) Publish a few events
         System.out.println("thread:'" + Thread.currentThread().getName() + "' publishing events\n");
