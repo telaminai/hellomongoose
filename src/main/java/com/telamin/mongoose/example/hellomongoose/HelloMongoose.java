@@ -1,7 +1,6 @@
 package com.telamin.mongoose.example.hellomongoose;
 
 import com.fluxtion.agrona.concurrent.BusySpinIdleStrategy;
-import com.fluxtion.runtime.node.ObjectEventHandlerNode;
 import com.telamin.mongoose.MongooseServer;
 import com.telamin.mongoose.config.EventFeedConfig;
 import com.telamin.mongoose.config.EventProcessorConfig;
@@ -10,6 +9,7 @@ import com.telamin.mongoose.config.ThreadConfig;
 import com.telamin.mongoose.connector.memory.InMemoryEventSource;
 
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 public final class HelloMongoose {
 
@@ -25,23 +25,14 @@ public final class HelloMongoose {
 
     public static void main(String[] args) {
         // 1) Business logic handler
-        var handler = new ObjectEventHandlerNode() {
-            @Override
-            protected boolean handleEvent(Object event) {
-                if (event instanceof String s) {
-                    COUNT.incrementAndGet();
-                    System.out.println("thread:'" + Thread.currentThread().getName() + "' Got event: " + s);
-                }
-                return true;
-            }
-        };
+        Consumer<Object> handler = event -> System.out.println("Got event: " + event);
 
         // 2) Build in-memory feed
         var feed = new InMemoryEventSource<String>();
 
         // 3) Build and boot mongoose server with an in-memory feed and handler using builder APIs
         var eventProcessorConfig = EventProcessorConfig.builder()
-                .customHandler(handler)
+                .handlerFunction(handler)
                 .name("hello-handler")
                 .build();
 
