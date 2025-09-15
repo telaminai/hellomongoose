@@ -80,15 +80,9 @@ public final class HelloMongoose {
                 .agent("feed-agent", new BusySpinIdleStrategy())
                 .build();
 
-        var threadConfig = ThreadConfig.builder()
-                .agentName("processor-agent")
-                .idleStrategy(new BusySpinIdleStrategy())
-                .build();
-
         var app = MongooseServerConfig.builder()
                 .addProcessor("processor-agent", eventProcessorConfig)
                 .addEventFeed(feedConfig)
-                .addThread(threadConfig)
                 .build();
 
         var server = MongooseServer.bootServer(app);
@@ -107,21 +101,17 @@ public final class HelloMongoose {
 How it boots and runs:
 
 - Create and configure components:
-    - EventProcessorConfig.builder().customHandler(handler).build() creates the processor configuration.
-    - EventFeedConfig.builder().instance(feed).name("hello-feed").broadcast(true).agent("feed-agent", new
-      BusySpinIdleStrategy()) declares the in-memory feed and its agent/idle strategy.
-    - ThreadConfig.builder().agentName("processor-agent").idleStrategy(new BusySpinIdleStrategy()).build() sets up the
-      processor agent thread and the handler idleStrategy.
+    - **Event handler configuration** EventProcessorConfig.builder()
+    - **Event feed configuration** EventFeedConfig.builder() declares the in-memory feed and its agent/idle strategy
+
 - Add components to the server to be booted:
-    - MongooseServerConfig.builder().addEventFeed(feedConfig) registers the feed under the given name (the feed agent
-    thread).
-    - MongooseServerConfig.builder().addProcessor("processor-agent", eventProcessorConfig) registers the
-      handler under the given agent name (the processor agent thread).
-    - MongooseServerConfig.builder()....addThread(threadConfig) registers the processor agent thread configuration with the
-      app.
-- Boot the server: bootServer(app, rec -> { ... }) reads the app config, spins up the feed-agent and processor-agent threads, wires the
-  feed to the processor (broadcast in this example), and returns a server handle. Offering to feed will then drive the
-  handler on the processor-agent thread.
+    - **Register event feed** MongooseServerConfig.builder().addEventFeed(feedConfig) 
+    - **Register event feed** MongooseServerConfig.builder().addProcessor(...)
+
+- Run the application: 
+    - **Boot the server** bootServer(app) reads the app config, spins up the feed-agent and processor-agent threads, wires the
+  feed to the processor (broadcast in this example), and returns a server handle. 
+    - **Publish events** Offering events to feed will then drive the handler on the processor-agent thread.
 
 ## Build
 

@@ -43,15 +43,9 @@ public final class HelloMongoose {
                 .agent("feed-agent", new BusySpinIdleStrategy())
                 .build();
 
-        var threadConfig = ThreadConfig.builder()
-                .agentName("processor-agent")
-                .idleStrategy(new BusySpinIdleStrategy())
-                .build();
-
         var app = MongooseServerConfig.builder()
                 .addProcessor("processor-agent", eventProcessorConfig)
                 .addEventFeed(feedConfig)
-                .addThread(threadConfig)
                 .build();
 
         var server = MongooseServer.bootServer(app);
