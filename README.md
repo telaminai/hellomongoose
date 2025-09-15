@@ -212,6 +212,7 @@ Notes:
 
 - Mongoose GitHub repository: https://github.com/telaminai/mongoose
 - Mongoose project homepage:https://telaminai.github.io/mongoose/
+- Mongoose examples GitHub repository:https://github.com/telaminai/mongoose-examples
 - Example source in this project: [HelloMongoose](src/main/java/com/telamin/mongoose/example/hellomongoose/HelloMongoose.java)
 
 ## Configuring java.util.logging (JUL)
