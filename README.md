@@ -62,7 +62,8 @@ public final class HelloMongoose {
 
     public static void main(String[] args) {
         // 1) Business logic handler
-        Consumer<Object> handler = event -> System.out.println("Got event: " + event);
+        Consumer<Object> handler = event -> System.out.println(
+                "thread:'" + Thread.currentThread().getName() + "' event: " + event);
 
         // 2) Build in-memory feed
         var feed = new InMemoryEventSource<String>();
@@ -138,8 +139,8 @@ Expected output:
 ```
 thread:'main' publishing events
 
-thread:'processor-agent' Got event: hi
-thread:'processor-agent' Got event: mongoose
+thread:'processor-agent' event: hi
+thread:'processor-agent' event: mongoose
 ```
 
 ## Testing
