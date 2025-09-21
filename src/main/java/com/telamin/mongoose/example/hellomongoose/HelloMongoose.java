@@ -5,9 +5,9 @@ import com.telamin.mongoose.MongooseServer;
 import com.telamin.mongoose.config.EventFeedConfig;
 import com.telamin.mongoose.config.EventProcessorConfig;
 import com.telamin.mongoose.config.MongooseServerConfig;
-import com.telamin.mongoose.config.ThreadConfig;
 import com.telamin.mongoose.connector.memory.InMemoryEventSource;
 
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
@@ -23,9 +23,14 @@ public final class HelloMongoose {
         return COUNT.get();
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
         // 1) Business logic handler
-        Consumer<Object> handler = event -> System.out.println("Got event: " + event);
+        Consumer<Object> handler = event -> {
+            if (event instanceof String) {
+                System.out.println("Got event: " + event);
+                COUNT.incrementAndGet();
+            }
+        };
 
         // 2) Build in-memory feed
         var feed = new InMemoryEventSource<String>();
@@ -56,6 +61,7 @@ public final class HelloMongoose {
         feed.offer("mongoose");
 
         // 5) Cleanup (in a real app, keep running)
+        TimeUnit.MICROSECONDS.sleep(10);
         server.stop();
     }
 }

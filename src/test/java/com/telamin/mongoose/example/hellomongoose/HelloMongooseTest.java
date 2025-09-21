@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class HelloMongooseTest {
 
     @Test
-    void main_increments_static_count_for_two_events() {
+    void main_increments_static_count_for_two_events() throws InterruptedException {
         // reset any prior state
         HelloMongoose.resetCount();
 
